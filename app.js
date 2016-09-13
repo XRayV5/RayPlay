@@ -5,6 +5,13 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 2333;
 
+
+//Import gaming logic
+var logic = require('./ttt_logic');
+//make the board 3x3 for now
+var size = 3;
+
+
 var lobbyUsers = {};
 var users = {};
 var activeGames = {};
@@ -52,10 +59,10 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('leavelobby', socket.userId);
         socket.broadcast.emit('leavelobby', opponentId);
 
-        //write function to start the logic
-        //var logic = logicModule({gamesetting})
-        //var newBoard = initBoard
-
+        //init the logic boar for the game
+        //and store the board within the new game obj
+        var theBoard =   logic.initBoard(size);//size = 3
+        console.log(theBoard.toString());
         //then send back board broadcasting/tageted
 
 
@@ -63,15 +70,16 @@ io.on('connection', function(socket) {
         //game id, side etc. generated here
         var game = {
             id: Math.floor((Math.random() * 100) + 1),
-            board: null,//store the board
+            board: theBoard,//store the board
             users: {x: socket.userId, o: opponentId}
         };
 
         socket.gameId = game.id;
 
-        //register a active game
+        //register this new game as an active game
         activeGames[game.id] = game;
 
+        //save the game in the users' prof
         users[game.users.x].games[game.id] = game.id;
         users[game.users.o].games[game.id] = game.id;
 
@@ -83,8 +91,8 @@ io.on('connection', function(socket) {
         lobbyUsers[game.users.o].emit('joingame', {game: game, color: 'o'});
 
         //remove from lobby 'registration'
-        delete lobbyUsers[game.users.white];
-        delete lobbyUsers[game.users.black];
+        delete lobbyUsers[game.users.x];
+        delete lobbyUsers[game.users.o];
 
         //notify all users a new game started...not implemented
         socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game});
@@ -113,15 +121,29 @@ io.on('connection', function(socket) {
 //         }
 //     });
 //
-//     socket.on('move', function(msg) {
-//       //why do I have to broadcast the move??
-//       //because the user info has been removed from lobby user
-//         socket.broadcast.emit('move', msg);
-//       //stores and updates the board, for resume
-//         activeGames[msg.gameId].board = msg.board;
-//         console.log(msg);
-//     });
-//
+    socket.on('tic_move', function(msg) {
+      //why do I have to broadcast the move??
+      //because the user info has been removed from lobby user
+      console.log(msg.side +  " " + msg.move);
+
+      //get the current game board before plot
+
+      var crt_board = activeGames[msg.gameId].board
+
+      //invoke logic here to validate the move
+
+      // var move = logic.validateMove(msg.side, msg.move, crt_board);
+
+      //if-else condition here legal/illeagal move or game over with winner
+
+      // activeGames[msg.gameId].board = msg.board;
+
+      socket.broadcast.emit('tic_move', msg);
+    //stores and updates the board, for resume
+
+      console.log(msg);
+    });
+
     socket.on('disconnect', function(msg) {
 
       console.log(msg);
@@ -141,7 +163,7 @@ io.on('connection', function(socket) {
 
 
 
-    socket.on('tic_move', function(msg){console.log(msg.side +  " " + msg.move)});
+    // socket.on('tic_move', function(msg){console.log(msg.side +  " " + msg.move)});
 
 });
 

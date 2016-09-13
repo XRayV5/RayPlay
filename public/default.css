@@ -1,6 +1,6 @@
 body {
 	overflow-y: auto;
-	
+
 	display: flex;
 	flex-flow: column;
 	align-content: center;
@@ -15,7 +15,7 @@ body {
 	display: flex;
 	flex-direction: column;
 }
-	
+
 	.page.login .logo {
 		display: block;
 		background-color: lightgray;
@@ -23,28 +23,28 @@ body {
 		background-size: cover;
 		background-position: center center;
 
-		margin-bottom: 50px;	
-		
+		margin-bottom: 50px;
+
 		width: 350px;
 		height: 350px;
 	}
-	
+
 	.page.login button {
 		margin-left: 15px;
 		margin-bottom: 20px;
 		height: 35px;
 	}
-	
+
 	.page.login input {
 		margin-bottom: 20px;
 		width: 202px;
 		height: 25px;
 		font-size: 12pt;
 		padding: 2px;
-		
+
 		-webkit-border-radius: 5px;
 		-moz-border-radius: 5px;
-		border-radius: 5px; 
+		border-radius: 5px;
 	}
 
 	.page.lobby h2 {
@@ -55,9 +55,9 @@ body {
 		margin-bottom: 10px;
 		margin-top: 40px;
 	}
-	
+
 .page.game button {
-	margin-bottom: 10px;	
+	margin-bottom: 10px;
 }
 
 #page-lobby{
@@ -68,13 +68,18 @@ body {
 	display: none;
 }
 
+
+.main {
+	display: none;
+}
+
 .circle {
 	background-color: green;
 	width: 30px;
 	height: 30px;
     -webkit-border-radius: 15px;
     -moz-border-radius: 15px;
-    border-radius: 15px; 
+    border-radius: 15px;
 }
 
 .circle.offline {

@@ -9,6 +9,7 @@ var ticBoard = function(setting){
   var position = setting.position; //arr[][]
   var tellLegit = setting.rule;
   var socket = setting.socket;
+  var gameId = setting.gameId
   console.log("socket:" + socket);
   var mode = setting.gameMode;
   var first = setting.goFirst;
@@ -61,22 +62,22 @@ var ticBoard = function(setting){
 
         if(mode==="HvH"){
           $(".grid").on("click",function(event){
-
+            console.log(event.target.id);
             //apply tellLegit here conditions : true, false, win!
             var status = tellLegit('X');
 
-            socket.emit('tic_move', {move: event.target.id, side: side});
+            socket.emit('tic_move', {move: event.target.id, gameId: gameId ,side: side});
 
-            if(status === 'X'){
-
-              plotTracker.push(event.target.id);
-              console.log(event.target.id);
-              //plot(event.target.id,plotTracker);
-              placeOX(event.target.id, status);
-              $(event.target).off("click");
-              console.log(plotTracker);
-
-            }
+            // if(status === 'X'){
+            //
+            //   plotTracker.push(event.target.id);
+            //   console.log(event.target.id);
+            //   //plot(event.target.id,plotTracker);
+            //   placeOX(event.target.id, status);
+            //   $(event.target).off("click");
+            //   console.log(plotTracker);
+            //
+            // }
 
           });
        }

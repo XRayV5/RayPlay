@@ -51,7 +51,7 @@
         //start the game
         initGame(msg.game);
         $('#page-lobby').hide();
-        $('#page-game').show();
+        $('.main').show();
 
       });
 
@@ -220,6 +220,7 @@
           var cfg = {
             div : 'grdgrp',
             position : serverGame.board,
+            gameId : serverGame.id,
             rule : function(id){return id;},
             gameMode : 'HvH',
             goFirst : 'H',
