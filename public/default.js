@@ -22,6 +22,7 @@
             //add all online users to the page
             usersOnline = msg.users;
             updateUserList();
+            reloadUserList();
 
             //add the availble games(buttons) to the page
             myGames = msg.games;
@@ -136,6 +137,7 @@
           console.log(msg);
           usersOnline = msg.users;
           updateUserList();
+          reloadUserList();
 
           myGames = msg.games;
           updateGamesList();
@@ -188,6 +190,7 @@
       var addUser = function(userId) {
         usersOnline.push(userId);
         updateUserList();
+        reloadUserList();
       };
 
      var removeUser = function(userId) {
@@ -198,6 +201,7 @@
          }
 
          updateUserList();
+         reloadUserList();
       };
 
       var updateGamesList = function() {
@@ -224,6 +228,22 @@
         });
       };
 
+      var reloadUserList = function() {
+        $('#playerlist .collection-item').remove();
+        usersOnline.forEach(function(user) {
+          if(username !== user){
+            var $li = $('<li>').addClass('collection-item');
+            var $subdiv = $('<div>').text(user);
+            var $anchor = $('<a>').attr('herf','#!').addClass('secondary-content');
+            var $i = $('<i>').addClass('material-icons').text('send').on('click', function() {socket.emit('invite', user)});
+            // "<a href='#!' class='secondary-content'><i class='material-icons'>send</i></a>";
+            $anchor.append($i);
+            $subdiv.append($anchor);
+            $li.append($subdiv);
+            $('#playerlist').append($li);
+          }
+        });
+      };
 
 
       //tictactoe drawing area:

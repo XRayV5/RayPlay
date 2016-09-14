@@ -73,7 +73,7 @@ body {
 	display: none;
 }
 
-.circle {
+/*.circle {
 	background-color: green;
 	width: 30px;
 	height: 30px;
@@ -84,4 +84,4 @@ body {
 
 .circle.offline {
 	background-color: yellow;
-}
+}*/

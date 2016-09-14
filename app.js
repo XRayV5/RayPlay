@@ -5,6 +5,8 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 2333;
 
+//univesal unique id generator
+var UUID = require('uuid');
 
 //Import gaming logic
 var logic = require('./ttt_logic');
@@ -68,7 +70,7 @@ io.on('connection', function(socket) {
 
         //game id, side etc. generated here
         var game = {
-            id: Math.floor((Math.random() * 100) + 1),
+            id: UUID.v1(),
             over:false,
             status: 'start',
             turn : first, //can random
@@ -196,6 +198,7 @@ io.on('connection', function(socket) {
         console.log(socket.gameId + ' disconnected');
       }
 
+      delete users[socket.userId];
       delete lobbyUsers[socket.userId];
 
       socket.broadcast.emit('logout', {
