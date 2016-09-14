@@ -6,10 +6,13 @@
       var socket, serverGame;
       var username, playerColor;
       var game, board;
+
       var usersOnline = [];
+
       var myGames = [];
       socket = io();
 
+      var render;
       //////////////////////////////
       // Socket.io handlers
       //////////////////////////////
@@ -26,13 +29,21 @@
 
       });
 
+      //remove the user from the screen if disconnected
+      socket.on('logout', function (msg) {
+        console.log(msg.userId + "!");
+        removeUser(msg.userId);
+      });
+
+
       socket.on('joinlobby', function (msg) {
         //display the new user on the lobby page
+        console.log('joinlobby');
         addUser(msg);
       });
 
       socket.on('leavelobby', function (msg) {
-         //when a user disconnected, remove from screen
+         //when a user start a game, remove from screen
         removeUser(msg);
       });
 
@@ -44,33 +55,91 @@
 
       });
 
+
+
 //-------- this one starts the game!
       socket.on('joingame', function(msg) {
         console.log("joined as game id: " + msg.game.id );
         playerColor = msg.color;
+
+        var checkEmpty = function() {
+          var mtx = msg.game.board;
+          for(var i = 0; i < mtx.length; i++){
+            for(var j = 0; j < mtx.length; j++){
+              if(mtx[i][j] !== ''){return false}
+            }
+          }
+          return true
+        }
+
+        console.log(checkEmpty());
+        console.log(msg.game.board);
+
+        if(checkEmpty()){
+          initGame(msg.game);
+        }else{
+          //switch between different game boards
+          serverGame = msg.game;
+          render.renderBrd(msg.game.board);
+        }
         //start the game
-        initGame(msg.game);
         $('#page-lobby').hide();
         $('.main').show();
 
       });
 
 
-      //receive move from the other user
-      //serverGame got the value from init()
-      socket.on('move', function (msg) {
-        if (serverGame && msg.gameId === serverGame.id) {
-          //update the move in the logic board
-           game.move(msg.move);
-         //if the move is leagal, update the actual board
-           board.position(game.fen());
+//receive move from the other user
+//serverGame got the value from init()
+      socket.on('tic_move', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {//if this msg is for local current game
+            console.log(msg.status.board);
+            if(msg.status !== false){
+              render.renderBrd(msg.status.board);
+              if(msg.status.win === playerColor){
+                //win
+                render.promptWin("Congratulations! You are the winner");
+                console.log(playerColor);
+                  render.showWinCombo(msg.status.run, 'yellow');
+              }else if(msg.status.win !== false && msg.status.win !== 'D'){
+                //lose
+                render.promptWin("You suck...");
+                  render.showWinCombo(msg.status.run, 'blue');
+              }else if(msg.status.win == 'D'){
+                render.promptWin("Draw...");
+              }
+            }
+
         }
       });
 
-      //remove the user from the screen if disconnected
-      socket.on('logout', function (msg) {
-        console.log(msg.userId + "!");
-        removeUser(msg.userId);
+//game_to_reset
+      socket.on('restart', function(msg){
+          if(serverGame && serverGame.id === msg.id){
+            initGame(msg);
+          }
+      });
+
+//leave_game
+      socket.on('quitgame', function(msg) {
+        if(serverGame && serverGame.id === msg.id){
+          console.log('quit');
+          if($("#myModal").css("display") !== "none"){
+            $("#myModal").css("display","none");
+            $(".modal-header h4").remove();
+          }
+
+          $('#page-lobby').show();
+          $('.main').hide();
+
+
+          console.log(msg);
+          usersOnline = msg.users;
+          updateUserList();
+
+          myGames = msg.games;
+          updateGamesList();
+        }
       });
 
 
@@ -91,18 +160,30 @@
         }
       });
 
-      $('#game-back').on('click', function() {
-        socket.emit('login', username);
-        $('#page-game').hide();
-        $('#page-lobby').show();
-      });
-
-      // $('#game-resign').on('click', function() {
-      //   socket.emit('resign', {userId: username, gameId: serverGame.id});
-      //
-      //   $('#page-game').hide();
+      // $('#game-back').on('click', function() {
+      //   socket.emit('login', username);
+      //   $('.main').hide();
       //   $('#page-lobby').show();
       // });
+
+
+      //click to restart the game
+      $("#prpReset").on("click",function(){
+        $("#myModal").css("display","none");
+        $(".modal-header h2").remove();
+        return socket.emit('restart', serverGame);
+      });
+
+      //click to quit prpQuit
+      $("#prpQuit").on("click",function(){
+        return socket.emit('quitgame', serverGame);
+      });
+      //game-quit
+      $("#game-quit").on("click",function(){
+        return socket.emit('quitgame', serverGame);
+      });
+
+      //-----lobby list editting-----
 
       var addUser = function(userId) {
         usersOnline.push(userId);
@@ -120,7 +201,7 @@
       };
 
       var updateGamesList = function() {
-        document.getElementById('gamesList').innerHTML = '';
+        $('#gamesList').empty();
         myGames.forEach(function(game) {
           $('#gamesList').append($('<button>')
                         .text('#'+ game)
@@ -131,88 +212,22 @@
       };
 
       var updateUserList = function() {
-        document.getElementById('userList').innerHTML = '';
+        $('#userList').empty();
         usersOnline.forEach(function(user) {
-          $('#userList').append($('<button>')
-                        .text(user)
-                        .on('click', function() {
-                          socket.emit('invite',  user);
-                        }));
+          if(username !== user){
+            $('#userList').append($('<button>')
+                          .text(user)
+                          .on('click', function() {
+                            socket.emit('invite',  user);
+                          }));
+          }
         });
       };
 
-      //////////////////////////////
-      // Chess Game
-      //////////////////////////////
-
-      // var initGame = function (serverGameState) {
-      //   serverGame = serverGameState;
-      //
-      //     var cfg = {
-      //       draggable: true,
-      //       showNotation: false,
-      //       orientation: playerColor,
-      //       position: serverGame.board ? serverGame.board : 'start',
-      //       onDragStart: onDragStart,
-      //       onDrop: onDrop,
-      //       onSnapEnd: onSnapEnd
-      //     };
-      //
-      //     game = serverGame.board ? new Chess(serverGame.board) : new Chess();
-      //
-      //     board = new ChessBoard('game-board', cfg);
-      // }
-      //
-      // // do not pick up pieces if the game is over
-      // // only pick up pieces for the side to move
-      // var onDragStart = function(source, piece, position, orientation) {
-      //   if (game.game_over() === true ||
-      //       (game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-      //       (game.turn() === 'b' && piece.search(/^w/) !== -1) ||
-      //       (game.turn() !== playerColor[0])) {
-      //     return false;
-      //   }
-      // };
-      //
-      //
-      //
-      // var onDrop = function(source, target) {
-      //   // see if the move is legal
-      //   var move = game.move({
-      //     from: source,
-      //     to: target,
-      //     promotion: 'q' // : always promote to a queen for example simplicity
-      //   });
-      //
-      //   // illegal move
-      //   if (move === null) {
-      //     return 'snapback';
-      //   } else {
-      //      socket.emit('move', {move: move, gameId: serverGame.id, board: game.fen()});
-      //   }
-      //
-      // };
-      //
-      // // update the board position after the piece snap
-      // // for castling, en passant, pawn promotion
-      // var onSnapEnd = function() {
-      //   board.position(game.fen());
-      // };
 
 
       //tictactoe drawing area:
 
-      // var render = ticBoard({
-      //   div : 'grdgrp',
-      //   position : 'new',
-      //   rule : function(id){return id;},
-      //   gameMode : 'HvH',
-      //   goFirst : 'H',
-      //   socket: socket,
-      //   side : 'X',
-      //   size : 3
-      // });
-      // render.initGrids();
 
       var initGame = function (serverGameState) {
         serverGame = serverGameState;//update local current game info
@@ -225,13 +240,65 @@
             gameMode : 'HvH',
             goFirst : 'H',
             socket: socket,
-            side : 'X',
+            side: playerColor,
             size : 3
           };
 
-          var render = ticBoard(cfg);
+          render = ticBoard(cfg);
           render.initGrids();
       }
+
+
+      //buttons that controls the modal dropdowns
+      // X button to close the dropdown
+      $(".close").on("click",function(){
+        $("#myModal").css("display","none");
+        $(".modal-header h2").remove();
+      });
+
+
+
+
+      $("#AddNew").on("click",function(){
+        return showPanel();
+      });
+
+
+      $("#addPlayer").on("click",function(){
+        $(".scoreBoard .rds").remove();
+        return addPlayer();
+      });
+
+      $("#cancel").on("click",function(){
+        $("#playerPanel").css("display","none");
+        $(".scoreBoard .rds").remove();
+      });
+
+
+      function showPanel(){
+        $("#playerPanel").css("display","block");
+        printPlayers();
+      }
+
+      function addPlayer(){
+          //$(".scoreBoard").append("<div>"+$("#pname").val()+"</div>");
+          //access local storage
+          localStorage.setItem($("#pname").val(), "");
+          printPlayers();
+      }
+
+
+      function printPlayers(){
+        for(var k in localStorage){
+            $(".scoreBoard").append("<div class='rds'>"+k+" : "+localStorage[k]+"</div>");
+        }
+        $(".rds").on("click",function(event){
+          $("#p1").append("<div class='playerUp'>" + event.target.textContent + "</div>");
+        });
+      }
+
+
+
 
 
 

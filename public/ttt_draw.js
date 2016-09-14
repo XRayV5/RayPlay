@@ -4,22 +4,35 @@
 
 
 var ticBoard = function(setting){
-  //setting = {div, position, rule(on_click), gameMode, , goFirst, size}
+
   var div = setting.div;
-  var position = setting.position; //arr[][]
-  var tellLegit = setting.rule;
   var socket = setting.socket;
   var gameId = setting.gameId
-  console.log("socket:" + socket);
   var mode = setting.gameMode;
-  var first = setting.goFirst;
+
   var size = setting.size;
 
   var side = setting.side;
 
   var imgPath = ["url(img/cross_red.png)","url(img/greenCircle.png)"];
 
-  var plotTracker;
+
+  function placeOX (pit,track){
+    if(track === 'X'){
+      $("#"+pit).css("background-image",imgPath[0]);
+      $("#"+pit).css("background-size","contain");
+      $("#"+pit).css("background-repeat","no-repeat");
+    }else if(track === 'O'){
+      $("#"+pit).css("background-image",imgPath[1]);
+      $("#"+pit).css("background-size","contain");
+      $("#"+pit).css("background-repeat","no-repeat");
+    }else{
+      $("#"+pit).css("background-image","");
+      $("#"+pit).css("background-size","");
+      $("#"+pit).css("background-repeat","");
+    }
+  }
+
 
   return {
 
@@ -43,41 +56,13 @@ var ticBoard = function(setting){
           $(".grid").css({  "width":"7.5%","height":"8%"});
         }
         $("." + div).append("<div class='holder'></div>");
-        //$(".grdgrp").append("<div class='holder'></div>");
-
-        function placeOX(pit,track){
-          if(track === 'X'){//track === 'X'
-            //$("#"+pit).append($("<img>").attr("src",imgPath[0]));
-            $("#"+pit).css("background-image",imgPath[0]);
-            $("#"+pit).css("background-size","contain");
-            $("#"+pit).css("background-repeat","no-repeat");
-          }else{
-            //$("#"+pit).append($("<img>").attr("src",imgPath[1]));
-            $("#"+pit).css("background-image",imgPath[1]);
-            $("#"+pit).css("background-size","contain");
-            $("#"+pit).css("background-repeat","no-repeat");
-          }
-        }
-
 
         if(mode==="HvH"){
           $(".grid").on("click",function(event){
             console.log(event.target.id);
             //apply tellLegit here conditions : true, false, win!
-            var status = tellLegit('X');
 
             socket.emit('tic_move', {move: event.target.id, gameId: gameId ,side: side});
-
-            // if(status === 'X'){
-            //
-            //   plotTracker.push(event.target.id);
-            //   console.log(event.target.id);
-            //   //plot(event.target.id,plotTracker);
-            //   placeOX(event.target.id, status);
-            //   $(event.target).off("click");
-            //   console.log(plotTracker);
-            //
-            // }
 
           });
        }
@@ -109,24 +94,36 @@ var ticBoard = function(setting){
       //   plotBot(board,plotTracker);
       //   interId = setInterval(function(){return plotBot(board,plotTracker);}, haltTime);
       // }
+    },
+    renderBrd : function (brd) {
+      //render the board
+      for(var i = 0; i < brd.length; i++){
+        for(var j = 0; j < brd[i].length; j++){
+          var grid = i + "_" +j;
+          if(brd[i][j].includes("X")){
+            placeOX(grid,'X');
+          }else if(brd[i][j].includes("O")){
+            placeOX(grid,'O');
+          }else{
+            placeOX(grid,'blank');
+          }
+        }
+      }
+    },
+    showWinCombo : function (winCombo, color){
+      $(".grid").off();
+      for(var i = 0;i < winCombo.length;i++){
+      var winElmt = winCombo[i].split("-")[0];
+      console.log(winElmt);
+      $("#"+winElmt).css({"background-color":color});
+      }
+    },
+    promptWin : function (result){
+      $("#myModal").css("display","block");
+      $("#winner").empty();
+      $("#winner").append("<h4>"+result+"</h4>");
     }
 
-
   }
 
-}
-
-
-
-
-
-
-
-
-function showWinCombo(winCombo){
-  for(var i = 0;i < winCombo.length;i++){
-  var winElmt = winCombo[i].split("_").slice(0,2).join("_");
-  console.log(winElmt);
-  $("#"+winElmt).css({"background-color":"yellow"});
-  }
 }

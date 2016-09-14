@@ -12,8 +12,8 @@ var logic = require('./ttt_logic');
 var size = 3;
 
 
-var lobbyUsers = {};
-var users = {};
+var lobbyUsers = {}; //userId : user_socket
+var users = {}; //userId: userId, games: {gameId : opponent user id}
 var activeGames = {};
 
 app.get('/', function(req, res) {
@@ -34,11 +34,10 @@ io.on('connection', function(socket) {
         if (!users[userId]) {
           //if user does not exist, create new
             console.log('creating new user');
-            users[userId] = {userId: socket.userId, games:{}};
+            users[userId] = {userId: socket.userId, userSocket: socket , games:{}};
         } else {
             console.log('user found!');
             Object.keys(users[userId].games).forEach(function(gameId) {
-              //where gameId gets value??
                 console.log('gameid - ' + gameId);
             });
         }
@@ -62,15 +61,19 @@ io.on('connection', function(socket) {
         //init the logic boar for the game
         //and store the board within the new game obj
         var theBoard =   logic.initBoard(size);//size = 3
-        console.log(theBoard.toString());
-        //then send back board broadcasting/tageted
 
 
+
+        var first = 'X'; //random later
 
         //game id, side etc. generated here
         var game = {
             id: Math.floor((Math.random() * 100) + 1),
+            over:false,
+            status: 'start',
+            turn : first, //can random
             board: theBoard,//store the board
+            //piece color not decided here!
             users: {x: socket.userId, o: opponentId}
         };
 
@@ -80,15 +83,15 @@ io.on('connection', function(socket) {
         activeGames[game.id] = game;
 
         //save the game in the users' prof
-        users[game.users.x].games[game.id] = game.id;
-        users[game.users.o].games[game.id] = game.id;
+        // users[game.users.x].games[game.id] = game.users.o;
+        // users[game.users.o].games[game.id] = game.users.x;
 
         console.log('starting game: ' + game.id);
 
         //Starting games on both sides
-        lobbyUsers[game.users.x].emit('joingame', {game: game, color: 'x'});
+        users[game.users.x].userSocket.emit('joingame', {game: game, color: 'X'});
 
-        lobbyUsers[game.users.o].emit('joingame', {game: game, color: 'o'});
+        users[game.users.o].userSocket.emit('joingame', {game: game, color: 'O'});
 
         //remove from lobby 'registration'
         delete lobbyUsers[game.users.x];
@@ -97,51 +100,91 @@ io.on('connection', function(socket) {
         //notify all users a new game started...not implemented
         socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game});
     });
-//
-//      socket.on('resumegame', function(gameId) {
-//         console.log('ready to resume game: ' + gameId);
-//
-//         socket.gameId = gameId;
-//         var game = activeGames[gameId];
-//
-//         //put the game back - for both
-//         users[game.users.white].games[game.id] = game.id;
-//         users[game.users.black].games[game.id] = game.id;
-//
-//         console.log('resuming game: ' + game.id);
-//         if (lobbyUsers[game.users.white]) {
-//             lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white'});
-//             delete lobbyUsers[game.users.white];
-//         }
-//
-//         if (lobbyUsers[game.users.black]) {
-//             lobbyUsers[game.users.black] &&
-//             lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black'});
-//             delete lobbyUsers[game.users.black];
-//         }
-//     });
-//
+
+
+    socket.on('restart', function(game){
+      //find the game, find the opponent
+
+      //send restart request - no choice for now
+      game_to_reset = activeGames[game.id]
+      game_to_reset.over = false;
+      game_to_reset.board = logic.initBoard(size)
+
+      io.sockets.emit('restart', game_to_reset);
+    });
+
+    socket.on('quitgame', function(msg) {
+      // game_to_quit = activeGames[msg.id];
+      // delete users[msg.users.x].games[msg.id];
+      // delete users[msg.users.o].games[msg.id];
+      // io.sockets.emit('quitgame', game_to_quit);
+      delete activeGames[msg.id];
+
+      //send back online users and this user's game
+      io.sockets.emit('quitgame', { id : msg.id, users : Object.keys(lobbyUsers),
+                            games: Object.keys(users[socket.userId].games)});
+
+      //add the users back to lobby list
+
+      lobbyUsers[msg.users.x] = users[msg.users.x].userSocket;
+      lobbyUsers[msg.users.o] = users[msg.users.o].userSocket;
+
+      // notify all online users an user joins the lobby
+      socket.broadcast.emit('joinlobby', socket.userId);
+
+      //notify all that the othe user back to lobby
+      if(socket.userId !== msg.users.x){
+        lobbyUsers[msg.users.x].broadcast.emit('joinlobby', msg.users.x);
+      }else{
+        lobbyUsers[msg.users.o].broadcast.emit('joinlobby', msg.users.o);
+      }
+
+
+    });
+
+
+    //  socket.on('resumegame', function(gameId) {
+    //     console.log('ready to resume game: ' + gameId);
+    //
+    //     socket.gameId = gameId;
+    //     var game = activeGames[gameId];
+    //
+    //     //put the game back - for both
+    //     users[game.users.o].games[game.id] = game.id;
+    //     users[game.users.x].games[game.id] = game.id;
+    //
+    //     console.log('resuming game: ' + game.id);
+    //     if (lobbyUsers[game.users.o]) {
+    //         lobbyUsers[game.users.o].emit('joingame', {game: game, color: 'O'});
+    //         delete lobbyUsers[game.users.o];
+    //     }
+    //
+    //     if (lobbyUsers[game.users.x]) {
+    //         lobbyUsers[game.users.x] &&
+    //         lobbyUsers[game.users.x].emit('joingame', {game: game, color: 'X'});
+    //         delete lobbyUsers[game.users.x];
+    //     }
+    // });
+
     socket.on('tic_move', function(msg) {
-      //why do I have to broadcast the move??
-      //because the user info has been removed from lobby user
+
       console.log(msg.side +  " " + msg.move);
 
       //get the current game board before plot
 
-      var crt_board = activeGames[msg.gameId].board
+      var crt_game = activeGames[msg.gameId];
 
-      //invoke logic here to validate the move
+      if(!crt_game.over){
+        //invoke logic here to validate the move
+        var move = logic.validateMove(msg.side, msg.move, crt_game);
 
-      // var move = logic.validateMove(msg.side, msg.move, crt_board);
+        var newboard = {gameId: msg.gameId, status: move}
 
-      //if-else condition here legal/illeagal move or game over with winner
+        //broadcast updated board to all users
+        io.sockets.emit('tic_move', newboard);
 
-      // activeGames[msg.gameId].board = msg.board;
-
-      socket.broadcast.emit('tic_move', msg);
-    //stores and updates the board, for resume
-
-      console.log(msg);
+        console.log(move);
+      }
     });
 
     socket.on('disconnect', function(msg) {
