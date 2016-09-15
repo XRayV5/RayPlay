@@ -5,18 +5,50 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 2333;
 
+var mongoose = require( 'mongoose' );
+
 //univesal unique id generator
 var UUID = require('uuid');
 
 //Import gaming logic
 var logic = require('./ttt_logic');
+
+//helper functions
+
+var helpers = require('./helpers');
+
 //make the board 3x3 for now
 var size = 3;
 
 
 var lobbyUsers = {}; //userId : user_socket
 var users = {}; //userId: userId, games: {gameId : opponent user id}
-var activeGames = {};
+var activeGames = {};//gameId : game
+
+
+// database connection
+mongoose.connect('mongodb://localhost/tictactoe', function(err) {
+  if(err){
+    console.log(err);
+  }else{
+    console.log("Connected to mongodb!");
+  }
+});
+
+//define schema
+
+var playerSchema = mongoose.Schema({
+  username : String,
+  gamekey : {type : String, default : UUID.v1()},
+  w :{type : Number, default : 0},
+  l :{type : Number, default : 0},
+  d :{type : Number, default : 0},
+  lastgame : {lastgameId : {type : String, default : ''}, board : {type : Array, default : []}}
+});
+
+var Player = mongoose.model('Detail', playerSchema);
+// this will auto create a collection called Details?
+
 
 app.get('/', function(req, res) {
   //send back the main page
@@ -28,6 +60,33 @@ io.on('connection', function(socket) {
     console.log('new connection ' + socket);
 
     socket.on('login', function(userId) {
+
+
+      //username check function here to tell new user or not
+      Player.find({username : userId}, function(err, rcds) {
+        if(err) throw err;
+        console.log(rcds);
+        if(rcds.length === 0){
+          var newUser = new Player({username : userId});
+          newUser.save(function (err) {
+            if (err) throw err;
+            console.log(' New User Added to DB ');
+            console.log(newUser);
+              //send back user info for display
+            socket.emit('getUser',[newUser]);
+          });
+        } else {
+          console.log( 'User retrieved from DB' );
+          console.log(rcds);
+          //send back user info for display
+          socket.emit('getUser',rcds);
+        }
+      });
+
+
+
+
+
       //display the user id received
         console.log(userId + ' joining lobby');
       //store the userId in the session 'socket'
@@ -45,7 +104,7 @@ io.on('connection', function(socket) {
         }
 
         socket.emit('login', {users: Object.keys(lobbyUsers),
-                              games: Object.keys(users[userId].games)});
+                              games: helpers.getValues(activeGames)});
 //store all user info in the lobbyUsers
         lobbyUsers[userId] = socket;
 //notify all online users a new user joins the lobby
@@ -62,9 +121,7 @@ io.on('connection', function(socket) {
 
         //init the logic boar for the game
         //and store the board within the new game obj
-        var theBoard =   logic.initBoard(size);//size = 3
-
-
+        var theBoard = logic.initBoard(size);//size = 3
 
         var first = 'X'; //random later
 
@@ -100,7 +157,8 @@ io.on('connection', function(socket) {
         delete lobbyUsers[game.users.o];
 
         //notify all users a new game started...not implemented
-        socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game});
+        console.log(helpers.getValues(activeGames));
+        socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
     });
 
 
@@ -122,6 +180,7 @@ io.on('connection', function(socket) {
       // io.sockets.emit('quitgame', game_to_quit);
       delete activeGames[msg.id];
 
+      socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
       //send back online users and this user's game
       io.sockets.emit('quitgame', { id : msg.id, users : Object.keys(lobbyUsers),
                             games: Object.keys(users[socket.userId].games)});
@@ -145,28 +204,6 @@ io.on('connection', function(socket) {
     });
 
 
-    //  socket.on('resumegame', function(gameId) {
-    //     console.log('ready to resume game: ' + gameId);
-    //
-    //     socket.gameId = gameId;
-    //     var game = activeGames[gameId];
-    //
-    //     //put the game back - for both
-    //     users[game.users.o].games[game.id] = game.id;
-    //     users[game.users.x].games[game.id] = game.id;
-    //
-    //     console.log('resuming game: ' + game.id);
-    //     if (lobbyUsers[game.users.o]) {
-    //         lobbyUsers[game.users.o].emit('joingame', {game: game, color: 'O'});
-    //         delete lobbyUsers[game.users.o];
-    //     }
-    //
-    //     if (lobbyUsers[game.users.x]) {
-    //         lobbyUsers[game.users.x] &&
-    //         lobbyUsers[game.users.x].emit('joingame', {game: game, color: 'X'});
-    //         delete lobbyUsers[game.users.x];
-    //     }
-    // });
 
     socket.on('tic_move', function(msg) {
 
@@ -180,6 +217,27 @@ io.on('connection', function(socket) {
         //invoke logic here to validate the move
         var move = logic.validateMove(msg.side, msg.move, crt_game);
 
+
+        //update database for new game record
+        if(move.win === 'X'){
+          Player.update({username : crt_game.users.x},{$inc : {w : 1} }, function (err) { if(err) throw err; });
+
+          Player.update({username : crt_game.users.o},{$inc : {l : 1} }, function (err) { if(err) throw err; });
+
+        }else if(move.win === 'O'){
+          Player.update({username : crt_game.users.o},{$inc : {w : 1} }, function (err) { if(err) throw err; });
+
+          Player.update({username : crt_game.users.x},{$inc : {l : 1} }, function (err) { if(err) throw err; });
+        }else if(move.win === 'D'){
+          Player.update({username : crt_game.users.o},{$inc : {d : 1} }, function (err) { if(err) throw err; });
+
+          Player.update({username : crt_game.users.x},{$inc : {d : 1} }, function (err) { if(err) throw err; });
+        }
+
+//         db.products.update(
+//    { sku: "abc123" },
+//    { $inc: { quantity: -2, "metrics.orders": 1 } }
+// )
         var newboard = {gameId: msg.gameId, status: move}
 
         //broadcast updated board to all users
@@ -200,6 +258,10 @@ io.on('connection', function(socket) {
 
       delete users[socket.userId];
       delete lobbyUsers[socket.userId];
+      delete activeGames[socket.gameId];
+      socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
+
+
 
       socket.broadcast.emit('logout', {
         userId: socket.userId,

@@ -18,17 +18,37 @@
     </div>
     <div class="page lobby" id='page-lobby'>
       <h1>RayPlay.Net</h1>
-      <h2 id='userLabel'></h2>
+      <h3 id='userLabel'></h3>
+      <h4>Record</h4>
+
+      <table>
+        <thead>
+          <tr>
+              <th data-field="Win">Win</th>
+              <th data-field="Loss">Loss</th>
+              <th data-field="Tie">Tie</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id='w'></td>
+            <td id='l'></td>
+            <td id='d'></td>
+          </tr>
+        </tbody>
+      </table>
+
       <h3>Active games</h3>
-      <div id='gamesList'>
-        No active games
-      </div>
+      <ul class="collection" id="game-list">
+
+      </ul>
+
       <h3>Online players</h3>
        <div id='userList'>
          No users online
       </div>
       <ul class="collection with-header" id="playerlist">
-        <li class="collection-header"><h4>First Names</h4></li>
+        <li class="collection-header"><h4>Players Online</h4></li>
       </ul>
       <!-- <ul class="collection with-header">
         <li class="collection-header"><h4>First Names</h4></li>

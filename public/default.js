@@ -20,14 +20,16 @@
       socket.on('login', function(msg) {
 
             //add all online users to the page
+            console.log(msg.users);
             usersOnline = msg.users;
             updateUserList();
             reloadUserList();
+            reloadGameList(msg.games);
 
-            //add the availble games(buttons) to the page
-            myGames = msg.games;
-            updateGamesList();
+      });
 
+      socket.on('getUser', function(user){
+        showUser(user);
       });
 
       //remove the user from the screen if disconnected
@@ -48,13 +50,11 @@
         removeUser(msg);
       });
 
-      socket.on('gameadd', function(msg) {
-
+      socket.on('gameupdate', function(msg) {
+        console.log(msg);
+        reloadGameList(msg);
       });
 
-      socket.on('gameremove', function(msg) {
-
-      });
 
 
 
@@ -136,7 +136,6 @@
 
           console.log(msg);
           usersOnline = msg.users;
-          updateUserList();
           reloadUserList();
 
           myGames = msg.games;
@@ -162,12 +161,6 @@
         }
       });
 
-      // $('#game-back').on('click', function() {
-      //   socket.emit('login', username);
-      //   $('.main').hide();
-      //   $('#page-lobby').show();
-      // });
-
 
       //click to restart the game
       $("#prpReset").on("click",function(){
@@ -186,6 +179,19 @@
       });
 
       //-----lobby list editting-----
+
+      function showUser(user) {
+        $('#w').text('');
+        $('#l').text('');
+        $('#d').text('');
+        $('#w').text(user[0].w);
+        $('#l').text(user[0].l);
+        $('#d').text(user[0].d);
+      }
+
+      // <span class="new badge red">4</span>
+      // <span class="new badge blue">4</span>
+      // <span class="new badge green">4</span>
 
       var addUser = function(userId) {
         usersOnline.push(userId);
@@ -215,6 +221,20 @@
         });
       };
 
+      var reloadGameList = function( gamelist ) {
+        $('#game-list').empty();
+        gamelist.forEach(function(game) {
+            var $li = $('<li>').addClass('collection-item');
+            $li.attr('id',game.id);
+            var info = game.users.x + " VS. " + game.users.o;
+            $li.text(info);
+            $('#game-list').append($li);
+         });
+
+      }
+
+
+
       var updateUserList = function() {
         $('#userList').empty();
         usersOnline.forEach(function(user) {
@@ -235,7 +255,7 @@
             var $li = $('<li>').addClass('collection-item');
             var $subdiv = $('<div>').text(user);
             var $anchor = $('<a>').attr('herf','#!').addClass('secondary-content');
-            var $i = $('<i>').addClass('material-icons').text('send').on('click', function() {socket.emit('invite', user)});
+            var $i = $('<i>').addClass('material-icons').text('games').on('click', function() {socket.emit('invite', user)});
             // "<a href='#!' class='secondary-content'><i class='material-icons'>send</i></a>";
             $anchor.append($i);
             $subdiv.append($anchor);
@@ -300,12 +320,6 @@
         printPlayers();
       }
 
-      function addPlayer(){
-          //$(".scoreBoard").append("<div>"+$("#pname").val()+"</div>");
-          //access local storage
-          localStorage.setItem($("#pname").val(), "");
-          printPlayers();
-      }
 
 
       function printPlayers(){
