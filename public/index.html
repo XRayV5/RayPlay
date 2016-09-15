@@ -43,10 +43,6 @@
 
       </ul>
 
-      <h3>Online players</h3>
-       <div id='userList'>
-         No users online
-      </div>
       <ul class="collection with-header" id="playerlist">
         <li class="collection-header"><h4>Players Online</h4></li>
       </ul>
@@ -57,6 +53,35 @@
         <li class="collection-item"><div>Alvin<a href="#!" class="secondary-content"><i class="material-icons">send</i></a></div></li>
         <li class="collection-item"><div>Alvin<a href="#!" class="secondary-content"><i class="material-icons">send</i></a></div></li>
       </ul> -->
+
+
+      <div class="row">
+        <div>
+          <div class="card blue-grey darken-1">
+            <div id="chatlog" class="card-content white-text">
+              <span class="card-title">Chatbox</span>
+            </div>
+            <div class="card-action">
+              <div class="row">
+                <div class="input-field">
+                  <i class="material-icons prefix">mode_edit</i>
+                  <textarea id="icon_prefix2" class="materialize-textarea white-text"></textarea>
+                  <label for="icon_prefix2">Message</label>
+                </div>
+
+              </div>
+              <button id="sendbtn" class="btn waves-effect waves-light" type="" name="action">Send
+              <i class="material-icons right">send</i>
+              </button>
+              <button id="groupbtn" class="btn waves-effect waves-light" type="" name="action">Broadcast
+              <i class="material-icons right">volume_up</i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
     </div>
 
 
@@ -76,7 +101,6 @@
     <div class="panelLeft">
       <div id="p1">
           <div class="page game" id='page-game'>
-            <button id='game-back'>Back</button>
             <button id='game-quit'>Resign</button>
           </div>
       </div>

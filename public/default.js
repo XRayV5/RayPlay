@@ -13,6 +13,11 @@
       socket = io();
 
       var render;
+
+      //chat
+      var whisperTo;
+
+
       //////////////////////////////
       // Socket.io handlers
       //////////////////////////////
@@ -22,7 +27,6 @@
             //add all online users to the page
             console.log(msg.users);
             usersOnline = msg.users;
-            updateUserList();
             reloadUserList();
             reloadGameList(msg.games);
 
@@ -195,7 +199,6 @@
 
       var addUser = function(userId) {
         usersOnline.push(userId);
-        updateUserList();
         reloadUserList();
       };
 
@@ -206,19 +209,7 @@
             }
          }
 
-         updateUserList();
          reloadUserList();
-      };
-
-      var updateGamesList = function() {
-        $('#gamesList').empty();
-        myGames.forEach(function(game) {
-          $('#gamesList').append($('<button>')
-                        .text('#'+ game)
-                        .on('click', function() {
-                          socket.emit('resumegame',  game);
-                        }));
-        });
       };
 
       var reloadGameList = function( gamelist ) {
@@ -256,7 +247,13 @@
             var $subdiv = $('<div>').text(user);
             var $anchor = $('<a>').attr('herf','#!').addClass('secondary-content');
             var $i = $('<i>').addClass('material-icons').text('games').on('click', function() {socket.emit('invite', user)});
+
+            var $s = $('<i>').addClass('material-icons').text('send').attr('id',user).on('click', function(event) {
+              whisperTo = $(event.target).attr('id');
+              $('#icon_prefix2').val("@" + whisperTo + ": ");
+            });
             // "<a href='#!' class='secondary-content'><i class='material-icons'>send</i></a>";
+            $anchor.append($s);
             $anchor.append($i);
             $subdiv.append($anchor);
             $li.append($subdiv);
@@ -289,6 +286,42 @@
       }
 
 
+
+      //-----------Chatbox feature----------------
+
+      //sender
+      $('#sendbtn').click(function() {
+        var content = $('#icon_prefix2').val();
+        socket.emit('whisper', {to : whisperTo, message : content});
+        $('#chatlog').append('<p>me' + content + '</p>');
+        $('#icon_prefix2').val('');
+      });
+
+      $('#groupbtn').click(function() {
+        var content = $('#icon_prefix2').val();
+        socket.emit('broadcast', content);
+        $('#chatlog').append('<p>me: ' + content + '</p>');
+        $('#icon_prefix2').val('');
+      });
+
+      //receiver
+      socket.on('whisper', function(msg) {
+
+        var $from = $('<span>').text(msg.from).click(function() {
+            whisperTo = msg.from;
+            $('#icon_prefix2').val("@" + whisperTo + ": ");
+        }).css('color','red');
+        var $msg = $('<p>').append($from);
+        $msg.append(msg.message);
+        $('#chatlog').append($msg);
+      });
+
+      socket.on('broadcast', function(msg) {
+        var line = msg.from + ": " + msg.message;
+        var $msg = $('<p>').append(line);
+        $('#chatlog').append($msg);
+      });
+
       //buttons that controls the modal dropdowns
       // X button to close the dropdown
       $(".close").on("click",function(){
@@ -319,21 +352,6 @@
         $("#playerPanel").css("display","block");
         printPlayers();
       }
-
-
-
-      function printPlayers(){
-        for(var k in localStorage){
-            $(".scoreBoard").append("<div class='rds'>"+k+" : "+localStorage[k]+"</div>");
-        }
-        $(".rds").on("click",function(event){
-          $("#p1").append("<div class='playerUp'>" + event.target.textContent + "</div>");
-        });
-      }
-
-
-
-
 
 
 })();

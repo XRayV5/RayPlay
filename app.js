@@ -180,7 +180,18 @@ io.on('connection', function(socket) {
       // io.sockets.emit('quitgame', game_to_quit);
       delete activeGames[msg.id];
 
-      socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
+      Player.find({username : msg.users.x}, function(err, rcds) {
+        if(err) throw err;
+        socket.emit('getUser', rcds);
+      });
+
+
+      Player.find({username : msg.users.o}, function(err, rcds) {
+        if(err) throw err;
+        users[msg.users.o].userSocket.emit('getUser', rcds);
+      });
+
+      io.sockets.emit('gameupdate', helpers.getValues(activeGames));
       //send back online users and this user's game
       io.sockets.emit('quitgame', { id : msg.id, users : Object.keys(lobbyUsers),
                             games: Object.keys(users[socket.userId].games)});
@@ -261,8 +272,6 @@ io.on('connection', function(socket) {
       delete activeGames[socket.gameId];
       socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
 
-
-
       socket.broadcast.emit('logout', {
         userId: socket.userId,
         gameId: socket.gameId
@@ -270,8 +279,18 @@ io.on('connection', function(socket) {
     });
 
 
+    //-------chat handlers
+    //whisper
+    socket.on('whisper', function(msg) {
+        users[msg.to].userSocket.emit('whisper', { from : socket.userId, message : msg.message });
+    });
 
-    // socket.on('tic_move', function(msg){console.log(msg.side +  " " + msg.move)});
+    socket.on('broadcast', function(msg){
+        socket.broadcast.emit('broadcast', {from : socket.userId , message : msg});
+    });
+
+
+
 
 });
 
