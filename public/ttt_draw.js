@@ -122,6 +122,9 @@ var ticBoard = function(setting){
       $("#myModal").css("display","block");
       $("#winner").empty();
       $("#winner").append("<h4>"+result+"</h4>");
+    },
+    showturn : function (turn){
+      $('#turn').text(turn + ' goes first!');
     }
 
   }

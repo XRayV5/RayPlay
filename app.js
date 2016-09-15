@@ -61,7 +61,6 @@ io.on('connection', function(socket) {
 
     socket.on('login', function(userId) {
 
-
       //username check function here to tell new user or not
       Player.find({username : userId}, function(err, rcds) {
         if(err) throw err;
@@ -82,10 +81,6 @@ io.on('connection', function(socket) {
           socket.emit('getUser',rcds);
         }
       });
-
-
-
-
 
       //display the user id received
         console.log(userId + ' joining lobby');
@@ -211,7 +206,6 @@ io.on('connection', function(socket) {
         lobbyUsers[msg.users.o].broadcast.emit('joinlobby', msg.users.o);
       }
 
-
     });
 
 
@@ -227,7 +221,6 @@ io.on('connection', function(socket) {
       if(!crt_game.over){
         //invoke logic here to validate the move
         var move = logic.validateMove(msg.side, msg.move, crt_game);
-
 
         //update database for new game record
         if(move.win === 'X'){
@@ -245,10 +238,6 @@ io.on('connection', function(socket) {
           Player.update({username : crt_game.users.x},{$inc : {d : 1} }, function (err) { if(err) throw err; });
         }
 
-//         db.products.update(
-//    { sku: "abc123" },
-//    { $inc: { quantity: -2, "metrics.orders": 1 } }
-// )
         var newboard = {gameId: msg.gameId, status: move}
 
         //broadcast updated board to all users
@@ -266,6 +255,7 @@ io.on('connection', function(socket) {
         console.log(socket.userId + ' disconnected');
         console.log(socket.gameId + ' disconnected');
       }
+
 
       delete users[socket.userId];
       delete lobbyUsers[socket.userId];
@@ -288,9 +278,6 @@ io.on('connection', function(socket) {
     socket.on('broadcast', function(msg){
         socket.broadcast.emit('broadcast', {from : socket.userId , message : msg});
     });
-
-
-
 
 });
 

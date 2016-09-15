@@ -77,11 +77,11 @@
           return true
         }
 
-        console.log(checkEmpty());
         console.log(msg.game.board);
 
         if(checkEmpty()){
           initGame(msg.game);
+          render.showturn(msg.game.users.x);
         }else{
           //switch between different game boards
           serverGame = msg.game;
@@ -122,6 +122,7 @@
       socket.on('restart', function(msg){
           if(serverGame && serverGame.id === msg.id){
             initGame(msg);
+            render.showturn(msg.users.o);
           }
       });
 
@@ -292,16 +293,20 @@
       //sender
       $('#sendbtn').click(function() {
         var content = $('#icon_prefix2').val();
-        socket.emit('whisper', {to : whisperTo, message : content});
-        $('#chatlog').append('<p>me' + content + '</p>');
-        $('#icon_prefix2').val('');
+        if(content.length > 0){
+          socket.emit('whisper', {to : whisperTo, message : content});
+          $('#chatlog').append('<p>me' + content + '</p>');
+          $('#icon_prefix2').val('');
+        }
       });
 
       $('#groupbtn').click(function() {
         var content = $('#icon_prefix2').val();
-        socket.emit('broadcast', content);
-        $('#chatlog').append('<p>me: ' + content + '</p>');
-        $('#icon_prefix2').val('');
+        if(content.length > 0){
+          socket.emit('broadcast', content);
+          $('#chatlog').append('<p>me: ' + content + '</p>');
+          $('#icon_prefix2').val('');
+        }
       });
 
       //receiver
