@@ -136,10 +136,6 @@ io.on('connection', function(socket) {
         //register this new game as an active game
         activeGames[game.id] = game;
 
-        //save the game in the users' prof
-        // users[game.users.x].games[game.id] = game.users.o;
-        // users[game.users.o].games[game.id] = game.users.x;
-
         console.log('starting game: ' + game.id);
 
         //Starting games on both sides
@@ -257,9 +253,29 @@ io.on('connection', function(socket) {
       }
 
 
+      if(typeof activeGames[socket.gameId] !== 'undefined'){
+
+        var badgame = activeGames[socket.gameId];
+
+        if(socket.userId === badgame.users.x){
+
+          //send back online users and this user's game
+          io.sockets.emit('quitgame', { id : badgame.id, users : Object.keys(lobbyUsers)});
+
+          lobbyUsers[badgame.users.o] = users[badgame.users.o].userSocket;
+          lobbyUsers[badgame.users.o].broadcast.emit('joinlobby', socket.userId);
+        }else{
+          io.sockets.emit('quitgame', { id : badgame.id, users : Object.keys(lobbyUsers)});
+
+          lobbyUsers[badgame.users.X] = users[badgame.users.X].userSocket;
+          lobbyUsers[badgame.users.X].broadcast.emit('joinlobby', socket.userId);
+        }
+      }
+
+      delete activeGames[socket.gameId];
       delete users[socket.userId];
       delete lobbyUsers[socket.userId];
-      delete activeGames[socket.gameId];
+
       socket.broadcast.emit('gameupdate', helpers.getValues(activeGames));
 
       socket.broadcast.emit('logout', {

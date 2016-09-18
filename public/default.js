@@ -142,9 +142,6 @@
           console.log(msg);
           usersOnline = msg.users;
           reloadUserList();
-
-          myGames = msg.games;
-          updateGamesList();
         }
       });
 
@@ -336,27 +333,27 @@
 
 
 
-
-      $("#AddNew").on("click",function(){
-        return showPanel();
-      });
-
-
-      $("#addPlayer").on("click",function(){
-        $(".scoreBoard .rds").remove();
-        return addPlayer();
-      });
-
-      $("#cancel").on("click",function(){
-        $("#playerPanel").css("display","none");
-        $(".scoreBoard .rds").remove();
-      });
-
-
-      function showPanel(){
-        $("#playerPanel").css("display","block");
-        printPlayers();
-      }
+      // 
+      // $("#AddNew").on("click",function(){
+      //   return showPanel();
+      // });
+      //
+      //
+      // $("#addPlayer").on("click",function(){
+      //   $(".scoreBoard .rds").remove();
+      //   return addPlayer();
+      // });
+      //
+      // $("#cancel").on("click",function(){
+      //   $("#playerPanel").css("display","none");
+      //   $(".scoreBoard .rds").remove();
+      // });
+      //
+      //
+      // function showPanel(){
+      //   $("#playerPanel").css("display","block");
+      //   printPlayers();
+      // }
 
 
 })();
